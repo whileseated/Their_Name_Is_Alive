@@ -76,6 +76,18 @@ Defines the extension properties, including permissions, content scripts, and th
 2. View the **Cast** or **Personnel** section.  
 3. ✅ (alive) and ❌ (deceased) marks will appear next to names automatically.
 
+Here are a few example pages upon which the extension was tested:
+
+Films:
+- [Breathless](https://en.wikipedia.org/wiki/Breathless_(1960_film)#Cast)
+- [Good Will Hunting](https://en.wikipedia.org/wiki/Good_Will_Hunting#Cast)
+- [Star Wars](https://en.wikipedia.org/wiki/Star_Wars_(film)#Cast)
+
+Music:
+- [Fly or Die Fly or Die Fly or Die (World War)](https://en.wikipedia.org/wiki/Fly_or_Die_Fly_or_Die_Fly_or_Die_(World_War)#Personnel)
+- [Nevermind](https://en.wikipedia.org/wiki/Nevermind#Personnel)
+- [Moondreams](https://en.wikipedia.org/wiki/Moondreams_(Walter_Wanderley_album)#Personnel)
+
 ---
 
 ## **Troubleshooting**  
