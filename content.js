@@ -10,17 +10,21 @@ function findCastSection() {
 
     // Try each section type
     for (const sectionId of sectionIds) {
-        const header = document.querySelector(`h2#${sectionId}`);
+        const header = document.querySelector(`h2 span#${sectionId}, h2#${sectionId}`);
         if (header) {
             console.log(`Found ${sectionId} header:`, header.textContent);
-
-            // Look for the next div with class "div-col" OR the next ul element
-            let sibling = header.parentElement.nextElementSibling;
+            let sibling = header.closest('h2').parentElement.nextElementSibling;
+            
             while (sibling) {
-                if (sibling.classList.contains("div-col") || 
-                    (sectionId === "Personnel" && sibling.tagName === "UL")) {
-                    console.log(`Found ${sectionId} content container:`, sibling.outerHTML);
+                // Check for the original cases
+                if (sibling.classList.contains("div-col") || sibling.tagName === 'UL') {
                     contentContainer = sibling;
+                    break;
+                }
+                // New case: check for UL nested within other divs
+                const nestedUL = sibling.querySelector('ul');
+                if (nestedUL) {
+                    contentContainer = nestedUL;
                     break;
                 }
                 sibling = sibling.nextElementSibling;
@@ -74,6 +78,52 @@ function getActorLinks(castSection) {
     return links;
 }
 
+// Add this new function
+function processAdditionalPersonnel() {
+    console.log("Looking for additional Personnel sections...");
+    
+    // Find the Personnel section
+    const personnelHeader = document.querySelector('h2 span#Personnel');
+    if (!personnelHeader) return;
+    
+    // Get all ULs that follow the Personnel h2 but come before the next h2
+    const allULs = [];
+    let currentElement = personnelHeader.closest('h2').parentElement.nextElementSibling;
+    
+    // First, collect all ULs until next h2
+    while (currentElement && !currentElement.querySelector('h2')) {
+        if (currentElement.tagName === 'UL') {
+            allULs.push(currentElement);
+        }
+        currentElement = currentElement.nextElementSibling;
+    }
+    
+    // Skip the first UL (already processed) and handle the rest
+    for (let i = 1; i < allULs.length; i++) {
+        const ul = allULs[i];
+        const actorLinks = getActorLinks(ul);
+        console.log(`Processing additional UL with ${actorLinks.length} links`);
+        
+        actorLinks.forEach(actor => {
+            // Only process if not already marked
+            if (!actor.element.previousSibling || 
+                (!actor.element.previousSibling.textContent.includes('✅') && 
+                 !actor.element.previousSibling.textContent.includes('❌'))) {
+                chrome.runtime.sendMessage({ actorUrl: actor.url }, (response) => {
+                    if (chrome.runtime.lastError) return;
+                    if (response) {
+                        if (response.status === "alive") {
+                            actor.element.insertAdjacentHTML("beforebegin", "✅ ");
+                        } else if (response.status === "deceased") {
+                            actor.element.insertAdjacentHTML("beforebegin", "❌ ");
+                        }
+                    }
+                });
+            }
+        });
+    }
+}
+
 // Step 3: Send links to the background script
 function processCastSection() {
     console.log("Processing the Cast section...");
@@ -112,6 +162,9 @@ function processCastSection() {
     } else {
         console.warn("No Cast section found. Nothing to process.");
     }
+    
+    // Add this single line at the end
+    processAdditionalPersonnel();
 }
 
 // Start the process
