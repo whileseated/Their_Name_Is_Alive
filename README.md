@@ -1,5 +1,4 @@
 # **Their Name Is Alive**  
-**A Chrome Extension to determine if movie cast or album personnel listed on Wikipedia are still alive.**
 
 ---
 
@@ -82,11 +81,6 @@ Defines the extension properties, including permissions, content scripts, and th
 ## **Troubleshooting**  
 - **No Marks Appear**: Ensure the extension is loaded correctly and you are on a Wikipedia page.  
 - **Incorrect Results**: The extension relies on Wikipedia content and structure; inconsistencies might cause errors.  
-
----
-
-## **Credits**  
-- Developed as a tool to quickly assess the life status of individuals in movies or music album credits.  
 
 ---
 
