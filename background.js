@@ -5,27 +5,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetch(request.actorUrl)
             .then(response => response.text())
             .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, "text/html");
-
-                // Find the infobox table
-                const infobox = doc.querySelector(".infobox.biography.vcard");
-                if (!infobox) {
+                // Use string parsing instead of DOM manipulation
+                const infoboxMatch = html.match(/<table class="infobox biography vcard"[\s\S]*?<\/table>/);
+                if (!infoboxMatch) {
                     console.warn("No infobox found on the page.");
                     sendResponse({ status: "unknown" });
                     return;
                 }
 
+                const infoboxHtml = infoboxMatch[0];
                 console.log("Infobox found, searching for Born and Died rows...");
 
-                // Look for the Born row
-                const bornRow = infobox.querySelector("tr:has(th.infobox-label:contains('Born'))");
-                const diedRow = infobox.querySelector("tr:has(th.infobox-label:contains('Died'))");
+                // Simple string matching for Born and Died
+                const hasBorn = /<th[^>]*>Born<\/th>/i.test(infoboxHtml);
+                const hasDied = /<th[^>]*>Died<\/th>/i.test(infoboxHtml);
 
-                if (diedRow) {
+                if (hasDied) {
                     console.log("Died row found - actor is deceased.");
                     sendResponse({ status: "deceased" });
-                } else if (bornRow) {
+                } else if (hasBorn) {
                     console.log("Born row found, but no Died row - actor is alive.");
                     sendResponse({ status: "alive" });
                 } else {
