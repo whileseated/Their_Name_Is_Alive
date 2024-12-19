@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "Wikipedia Cast Checker",
+    "version": "1.0",
+    "description": "Checks actor life status on Wikipedia film pages.",
+    "permissions": [
+      "activeTab",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://*.wikipedia.org/*"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["https://*.wikipedia.org/wiki/*"],
+        "js": ["content.js"]
+      }
+    ],
+    "action": {
+      "default_title": "Wikipedia Cast Checker"
+    }
+  }
+  
