@@ -2,44 +2,58 @@ console.log("Wikipedia Cast Checker Loaded");
 
 // Step 1: Locate the Cast section
 function findCastSection() {
-    console.log("Searching for the Cast section...");
+    console.log("Searching for Cast or Personnel section...");
 
-    const castHeader = document.querySelector("h2#Cast");
-    if (castHeader) {
-        console.log("Found Cast header:", castHeader.textContent);
+    // Define the sections we want to look for
+    const sectionIds = ["Cast", "Personnel"];
+    let contentContainer = null;
 
-        // Look for the next div with class "div-col"
-        let sibling = castHeader.parentElement.nextElementSibling;
-        while (sibling) {
-            if (sibling.classList.contains("div-col")) {
-                console.log("Found Cast content container:", sibling.outerHTML);
-                return sibling; // This is the cast content container
+    // Try each section type
+    for (const sectionId of sectionIds) {
+        const header = document.querySelector(`h2#${sectionId}`);
+        if (header) {
+            console.log(`Found ${sectionId} header:`, header.textContent);
+
+            // Look for the next div with class "div-col" OR the next ul element
+            let sibling = header.parentElement.nextElementSibling;
+            while (sibling) {
+                if (sibling.classList.contains("div-col") || 
+                    (sectionId === "Personnel" && sibling.tagName === "UL")) {
+                    console.log(`Found ${sectionId} content container:`, sibling.outerHTML);
+                    contentContainer = sibling;
+                    break;
+                }
+                sibling = sibling.nextElementSibling;
             }
-            sibling = sibling.nextElementSibling; // Traverse to the next sibling
+            
+            if (contentContainer) break;
         }
     }
 
-    console.warn("No Cast section found on this page.");
-    return null;
+    if (!contentContainer) {
+        console.warn("No Cast or Personnel section found on this page.");
+    }
+    return contentContainer;
 }
 
 // Step 2: Extract actor links
 function getActorLinks(castSection) {
-    console.log("Extracting actor links from the Cast section...");
+    console.log("Extracting actor links from the Cast/Personnel section...");
     const links = [];
 
     if (castSection) {
         // Look for <li> elements containing <a> tags
         const listItems = castSection.querySelectorAll("ul > li");
-        console.log(`Found ${listItems.length} list items in the Cast section.`);
+        console.log(`Found ${listItems.length} list items in the section.`);
 
         listItems.forEach(li => {
+            // Get only the first link in each list item
             const anchor = li.querySelector("a[href^='/wiki/']");
             if (anchor) {
                 const href = anchor.getAttribute("href");
                 const text = anchor.textContent.trim();
-
-                console.log(`Valid actor link found: ${text} -> ${href}`);
+                
+                console.log(`Valid person link found: ${text} -> ${href}`);
                 links.push({
                     name: text,
                     url: "https://en.wikipedia.org" + href,
@@ -50,10 +64,10 @@ function getActorLinks(castSection) {
             }
         });
     } else {
-        console.warn("Cast section exists, but no list items were found.");
+        console.warn("Section exists, but no list items were found.");
     }
 
-    console.log(`Total valid actor links found: ${links.length}`);
+    console.log(`Total valid person links found: ${links.length}`);
     return links;
 }
 
