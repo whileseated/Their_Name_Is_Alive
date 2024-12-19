@@ -5,35 +5,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetch(request.actorUrl)
             .then(response => response.text())
             .then(html => {
-                // Use string parsing instead of DOM manipulation
+                // First try the infobox method
                 const infoboxMatch = html.match(/<table class="infobox[^"]*vcard[^"]*"[\s\S]*?<\/table>/);
-                if (!infoboxMatch) {
-                    console.warn("No infobox found on the page. HTML preview:", html.substring(0, 500));
-                    sendResponse({ status: "unknown" });
-                    return;
+                if (infoboxMatch) {
+                    const infoboxHtml = infoboxMatch[0];
+                    console.log("Infobox found, searching for Born and Died rows...");
+
+                    const bornVariations = infoboxHtml.match(/<th[^>]*class="infobox-label"[^>]*>\s*Born\s*<\/th>/i);
+                    const diedVariations = infoboxHtml.match(/<th[^>]*class="infobox-label"[^>]*>\s*Died\s*<\/th>/i);
+
+                    if (diedVariations) {
+                        console.log("Died row found in infobox - person is deceased.");
+                        sendResponse({ status: "deceased" });
+                        return;
+                    } else if (bornVariations) {
+                        console.log("Born row found in infobox, but no Died row - person is alive.");
+                        sendResponse({ status: "alive" });
+                        return;
+                    }
                 }
 
-                const infoboxHtml = infoboxMatch[0];
-                console.log("Page:", request.actorUrl);
-                console.log("Infobox HTML (first 500 chars):", infoboxHtml.substring(0, 500));
-
-                // Look for variations of Born/Died headers with more flexible matching
-                const bornVariations = infoboxHtml.match(/<th[^>]*class="infobox-label"[^>]*>\s*Born\s*<\/th>/i);
-                const diedVariations = infoboxHtml.match(/<th[^>]*class="infobox-label"[^>]*>\s*Died\s*<\/th>/i);
-
-                console.log("Born variations found:", bornVariations ? bornVariations[0] : "none");
-                console.log("Died variations found:", diedVariations ? diedVariations[0] : "none");
-
-                if (diedVariations) {
-                    console.log("Died row found - person is deceased.");
-                    sendResponse({ status: "deceased" });
-                } else if (bornVariations) {
-                    console.log("Born row found, but no Died row - person is alive.");
-                    sendResponse({ status: "alive" });
-                } else {
-                    console.warn("Neither Born nor Died row found in infobox.");
-                    sendResponse({ status: "unknown" });
+                // If no infobox or no Born/Died info found, try the first paragraph method
+                console.log("Checking first paragraph for birth/death dates...");
+                const firstParaMatch = html.match(/<p><b>[^<]+<\/b>\s*\([^<]+\)/);
+                
+                if (firstParaMatch) {
+                    const firstPara = firstParaMatch[0];
+                    console.log("First paragraph start:", firstPara);
+                    
+                    // Look for two years within the parentheses
+                    const yearsPattern = /\(.*?\b(19|20)\d{2}\b.*?[-–—].*?\b(19|20)\d{2}\b.*?\)/;
+                    const hasYears = yearsPattern.test(firstPara);
+                    
+                    if (hasYears) {
+                        console.log("Found birth and death years in first paragraph");
+                        sendResponse({ status: "deceased" });
+                        return;
+                    }
                 }
+
+                console.warn("No definitive life status found.");
+                sendResponse({ status: "unknown" });
             })
             .catch(err => {
                 console.error("Error fetching page:", err);
