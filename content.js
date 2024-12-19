@@ -1,22 +1,21 @@
 console.log("Wikipedia Cast Checker Loaded");
 
-// Step 1: Locate the Cast section using #Cast anchor or fallback
+// Step 1: Locate the Cast section
 function findCastSection() {
     console.log("Searching for the Cast section...");
 
-    // Try to directly access the Cast section via the id 'Cast'
-    const castAnchor = document.getElementById("Cast");
-    if (castAnchor) {
-        console.log("Found #Cast section directly.");
-        return castAnchor.parentElement.nextElementSibling;
-    }
+    const castHeader = document.querySelector("h2#Cast");
+    if (castHeader) {
+        console.log("Found Cast header:", castHeader.textContent);
 
-    // Fallback: Search through headers for "Cast"
-    const headers = document.querySelectorAll("h2, h3");
-    for (let header of headers) {
-        if (/cast/i.test(header.textContent)) {
-            console.log("Cast section found by header:", header.textContent);
-            return header.nextElementSibling;
+        // Look for the next div with class "div-col"
+        let sibling = castHeader.parentElement.nextElementSibling;
+        while (sibling) {
+            if (sibling.classList.contains("div-col")) {
+                console.log("Found Cast content container:", sibling.outerHTML);
+                return sibling; // This is the cast content container
+            }
+            sibling = sibling.nextElementSibling; // Traverse to the next sibling
         }
     }
 
@@ -24,30 +23,41 @@ function findCastSection() {
     return null;
 }
 
-// Step 2: Find actor links
+// Step 2: Extract actor links
 function getActorLinks(castSection) {
     console.log("Extracting actor links from the Cast section...");
     const links = [];
+
     if (castSection) {
-        const anchorTags = castSection.querySelectorAll("a[href^='/wiki/']");
-        for (let anchor of anchorTags) {
-            if (!anchor.href.includes("redlink")) { // Ignore red links (non-existing pages)
+        // Look for <li> elements containing <a> tags
+        const listItems = castSection.querySelectorAll("ul > li");
+        console.log(`Found ${listItems.length} list items in the Cast section.`);
+
+        listItems.forEach(li => {
+            const anchor = li.querySelector("a[href^='/wiki/']");
+            if (anchor) {
+                const href = anchor.getAttribute("href");
+                const text = anchor.textContent.trim();
+
+                console.log(`Valid actor link found: ${text} -> ${href}`);
                 links.push({
-                    name: anchor.textContent,
-                    url: "https://en.wikipedia.org" + anchor.getAttribute("href"),
+                    name: text,
+                    url: "https://en.wikipedia.org" + href,
                     element: anchor
                 });
-                console.log(`Actor link found: ${anchor.textContent} -> ${anchor.href}`);
+            } else {
+                console.log(`Skipping plain text entry: ${li.textContent.trim()}`);
             }
-        }
+        });
     } else {
-        console.warn("Cast section exists, but no links were found.");
+        console.warn("Cast section exists, but no list items were found.");
     }
-    console.log(`Total actor links found: ${links.length}`);
+
+    console.log(`Total valid actor links found: ${links.length}`);
     return links;
 }
 
-// Step 3: Send links to background script
+// Step 3: Send links to the background script
 function processCastSection() {
     console.log("Processing the Cast section...");
     const castSection = findCastSection();
