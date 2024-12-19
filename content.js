@@ -40,31 +40,34 @@ function findCastSection() {
 function getActorLinks(castSection) {
     console.log("Extracting actor links from the Cast/Personnel section...");
     const links = [];
+    const isPersonnel = castSection.previousElementSibling?.querySelector('#Personnel');
 
     if (castSection) {
-        // Look for <li> elements containing <a> tags
         const listItems = castSection.querySelectorAll("ul > li");
         console.log(`Found ${listItems.length} list items in the section.`);
 
         listItems.forEach(li => {
-            // Get only the first link in each list item
-            const anchor = li.querySelector("a[href^='/wiki/']");
-            if (anchor) {
-                const href = anchor.getAttribute("href");
-                const text = anchor.textContent.trim();
-                
-                console.log(`Valid person link found: ${text} -> ${href}`);
+            const liText = li.textContent;
+            // Find position of first dash (if any)
+            const dashIndex = liText.search(/[-–—]/);
+            
+            // Get all anchors before the dash (or all if no dash)
+            const anchors = Array.from(li.querySelectorAll("a[href^='/wiki/']"))
+                .filter(anchor => {
+                    if (dashIndex === -1) return true;
+                    const anchorPos = liText.indexOf(anchor.textContent);
+                    return anchorPos < dashIndex;
+                });
+
+            anchors.forEach(anchor => {
+                console.log(`Valid person link found: ${anchor.textContent} -> ${anchor.getAttribute("href")}`);
                 links.push({
-                    name: text,
-                    url: "https://en.wikipedia.org" + href,
+                    name: anchor.textContent.trim(),
+                    url: "https://en.wikipedia.org" + anchor.getAttribute("href"),
                     element: anchor
                 });
-            } else {
-                console.log(`Skipping plain text entry: ${li.textContent.trim()}`);
-            }
+            });
         });
-    } else {
-        console.warn("Section exists, but no list items were found.");
     }
 
     console.log(`Total valid person links found: ${links.length}`);
