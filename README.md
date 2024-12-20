@@ -15,7 +15,7 @@
   - ❌ next to names of deceased individuals.  
 - Works seamlessly in the background without disrupting your browsing experience.
 
-![Bernie Glow album example](img/xnap_love_supreme_2800.png)
+![Coltrane - A Love Supreme example](img/xnap_love_supreme_2800.png)
 
 
 ---
@@ -31,6 +31,8 @@
      - First paragraph for death/birth dates.  
 3. **Marking**:  
    - ✅ or ❌ is added beside each name in the section.
+
+![Coltrane - A Love Supreme example](img/xnap_star-wars_1280.png)
 
 ---
 
