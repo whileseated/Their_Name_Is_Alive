@@ -15,7 +15,7 @@
   - ❌ next to names of deceased individuals.  
 - Works seamlessly in the background without disrupting your browsing experience.
 
-![Bernie Glow album example](img/xnap_moondreams_1280.png)
+![Bernie Glow album example](img/xnap_love_supreme_2800.png)
 
 
 ---
