@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Wikipedia Cast Checker",
+    "name": "Their Name is Alive",
     "version": "1.0",
-    "description": "Checks actor life status on Wikipedia film pages.",
+    "description": "Checks actor life status on Wikipedia film pages, or musician life status on Wikipedia album pages",
     "permissions": [
       "activeTab",
       "scripting"
@@ -20,7 +20,7 @@
       }
     ],
     "action": {
-      "default_title": "Wikipedia Cast Checker"
+      "default_title": "Their Name is Alive"
     }
   }
   

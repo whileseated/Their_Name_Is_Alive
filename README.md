@@ -96,6 +96,11 @@ Music:
 
 ---
 
+## **To Do**  
+- Need to push for a solution where there are multiple personnel sections on a page, a la [A Love Supreme](https://en.wikipedia.org/wiki/A_Love_Supreme#Personnel).
+
+---
+
 ## **License**  
 This project is licensed under the MIT License.
 
