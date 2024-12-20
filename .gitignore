@@ -12,6 +12,7 @@ git_suggestions.md
 # Build outputs
 dist/
 build/
+icons/
 *.zip
 
 # IDE and Editor files
