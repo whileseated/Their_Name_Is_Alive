@@ -97,13 +97,8 @@ Music:
 ---
 
 ## **To Do**  
-- Need to push for a solution where there are multiple personnel sections on a page, a la [A Love Supreme](https://en.wikipedia.org/wiki/A_Love_Supreme#Personnel).
-
+- Need to push for a solution where there are multiple personnel sections on a page, a la [A Love Supreme](https://en.wikipedia.org/wiki/A_Love_Supreme#Personnel), or worse, [Aja](https://en.wikipedia.org/wiki/Aja_(album)).
 ---
 
 ## **License**  
 This project is licensed under the MIT License.
-
----
-
-Enjoy discerning who’s *still alive* with ease! 🎬🎵
