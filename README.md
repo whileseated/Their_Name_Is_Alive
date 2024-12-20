@@ -98,7 +98,7 @@ Music:
 ---
 
 ## **To Do**  
-- Need to push for a solution where there are multiple personnel sections on a page, a la [A Love Supreme](https://en.wikipedia.org/wiki/A_Love_Supreme#Personnel), or worse, [Aja](https://en.wikipedia.org/wiki/Aja_(album)).
+- Need to push for a solution where there are multiple personnel sections on a page, a la [Aja](https://en.wikipedia.org/wiki/Aja_(album)).
 ---
 
 ## **License**  
