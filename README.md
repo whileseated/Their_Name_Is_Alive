@@ -84,6 +84,7 @@ Films:
 - [Star Wars](https://en.wikipedia.org/wiki/Star_Wars_(film)#Cast)
 
 Music:
+- [A Love Supreme](https://en.wikipedia.org/wiki/A_Love_Supreme#Personnel)
 - [Fly or Die Fly or Die Fly or Die (World War)](https://en.wikipedia.org/wiki/Fly_or_Die_Fly_or_Die_Fly_or_Die_(World_War)#Personnel)
 - [Nevermind](https://en.wikipedia.org/wiki/Nevermind#Personnel)
 - [Moondreams](https://en.wikipedia.org/wiki/Moondreams_(Walter_Wanderley_album)#Personnel)
