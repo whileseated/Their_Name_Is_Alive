@@ -38,6 +38,8 @@
 
 ## **Installation**  
 
+[Install via Chrome Store](https://chromewebstore.google.com/detail/their-name-is-alive/mnbdmafjlblmipmpimeolmggnnogffob), or:
+
 1. **Download the Files**  
    Clone or download the repository files to your local system.  
 
