@@ -3,7 +3,7 @@
 ---
 
 ## **Overview**  
-*["Their Name Is Alive"* is a Chrome Extension](https://chromewebstore.google.com/detail/their-name-is-alive/mnbdmafjlblmipmpimeolmggnnogffob) that scans the **Cast** or **Personnel** section on Wikipedia movie or album pages. It checks whether individuals listed are alive or deceased using Wikipedia’s content and marks them with ✅ (alive) or ❌ (deceased).
+[*Their Name Is Alive* is a Chrome Extension](https://chromewebstore.google.com/detail/their-name-is-alive/mnbdmafjlblmipmpimeolmggnnogffob) that scans the **Cast** or **Personnel** section on Wikipedia movie or album pages. It checks whether individuals listed are alive or deceased using Wikipedia’s content and marks them with ✅ (alive) or ❌ (deceased).
 
 ---
 
