@@ -39,30 +39,36 @@ function getActorLinks(castSection) {
     const links = [];
     let currentElement = castSection;
 
-    while (currentElement && currentElement.tagName !== 'H2') {
-        const ulElements = currentElement.tagName === 'UL'
-            ? [currentElement]
-            : Array.from(currentElement.querySelectorAll('ul'));
-
-        ulElements.forEach(ul => {
-            const listItems = ul.querySelectorAll("li");
-            listItems.forEach(li => {
-                const anchors = Array.from(li.querySelectorAll("a[href^='/wiki/']"));
-                anchors.forEach(anchor => {
-                    if (!anchor.previousSibling || 
-                        (!anchor.previousSibling.textContent.includes('✅') &&
-                         !anchor.previousSibling.textContent.includes('❌'))) {
-                        links.push({
-                            name: anchor.textContent.trim(),
-                            url: "https://en.wikipedia.org" + anchor.getAttribute("href"),
-                            element: anchor
-                        });
-                    }
-                });
+    function processListItems(element) {
+        // Get all LIs, including nested ones
+        const listItems = element.querySelectorAll("li");
+        listItems.forEach(li => {
+            // Get all anchors in this LI that haven't been processed
+            const anchors = Array.from(li.querySelectorAll("a[href^='/wiki/']"));
+            anchors.forEach(anchor => {
+                if (!anchor.previousSibling || 
+                    (!anchor.previousSibling.textContent.includes('✅') &&
+                     !anchor.previousSibling.textContent.includes('❌'))) {
+                    links.push({
+                        name: anchor.textContent.trim(),
+                        url: "https://en.wikipedia.org" + anchor.getAttribute("href"),
+                        element: anchor
+                    });
+                }
             });
         });
+    }
+
+    while (currentElement && currentElement.tagName !== 'H2') {
+        if (currentElement.tagName === 'UL') {
+            processListItems(currentElement);
+        } else {
+            const nestedULs = currentElement.querySelectorAll('ul');
+            nestedULs.forEach(ul => processListItems(ul));
+        }
         currentElement = currentElement.nextElementSibling;
     }
+
     console.log(`Total valid actor links found: ${links.length}`);
     return links;
 }

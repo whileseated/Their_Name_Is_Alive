@@ -10,6 +10,7 @@ naming.md
 git_suggestions.md
 
 # Build outputs
+bug_fixed_version/
 old/
 dist/
 build/
