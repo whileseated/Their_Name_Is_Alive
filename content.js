@@ -34,43 +34,29 @@ function findCastSection() {
 }
 
 // Step 2: Extract actor links
-function getActorLinks(castSection) {
-    console.log("Extracting actor links from the Cast/Personnel section...");
-    const links = [];
-    let currentElement = castSection;
-
-    function processListItems(element) {
-        // Get all LIs, including nested ones
-        const listItems = element.querySelectorAll("li");
-        listItems.forEach(li => {
-            // Get all anchors in this LI that haven't been processed
-            const anchors = Array.from(li.querySelectorAll("a[href^='/wiki/']"));
-            anchors.forEach(anchor => {
-                if (!anchor.previousSibling || 
-                    (!anchor.previousSibling.textContent.includes('✅') &&
-                     !anchor.previousSibling.textContent.includes('❌'))) {
-                    links.push({
+function getActorLinks(listElement) {
+    const links = new Set();
+    
+    const listItems = listElement.querySelectorAll("li");
+    listItems.forEach(li => {
+        const anchors = Array.from(li.querySelectorAll("a[href^='/wiki/']"));
+        anchors.forEach(anchor => {
+            if (!anchor.previousSibling || 
+                (!anchor.previousSibling.textContent.includes('✅') &&
+                 !anchor.previousSibling.textContent.includes('❌'))) {
+                const url = "https://en.wikipedia.org" + anchor.getAttribute("href");
+                if (!Array.from(links).some(link => link.url === url)) {
+                    links.add({
                         name: anchor.textContent.trim(),
-                        url: "https://en.wikipedia.org" + anchor.getAttribute("href"),
+                        url: url,
                         element: anchor
                     });
                 }
-            });
+            }
         });
-    }
+    });
 
-    while (currentElement && currentElement.tagName !== 'H2') {
-        if (currentElement.tagName === 'UL') {
-            processListItems(currentElement);
-        } else {
-            const nestedULs = currentElement.querySelectorAll('ul');
-            nestedULs.forEach(ul => processListItems(ul));
-        }
-        currentElement = currentElement.nextElementSibling;
-    }
-
-    console.log(`Total valid actor links found: ${links.length}`);
-    return links;
+    return Array.from(links);
 }
 
 // Step 3: Process actor links asynchronously
@@ -101,25 +87,71 @@ async function processActorLinks(actorLinks) {
 
 // Step 4: Process Additional Personnel
 async function processAdditionalPersonnel() {
-    console.log("Looking for additional Personnel sections...");
-    const personnelHeader = document.querySelector('h2 span#Personnel');
-    if (!personnelHeader) return;
+    console.log("\n=== Starting Section Analysis ===");
+    
+    // Updated selector to find the Personnel header within the mw-heading div
+    const personnelHeader = document.querySelector('.mw-heading h2#Personnel');
+    console.log("Personnel header found:", !!personnelHeader);
+    
+    if (!personnelHeader) {
+        console.log("No Personnel section found, skipping...");
+        return;
+    }
 
-    let currentElement = personnelHeader.closest('h2').nextElementSibling;
+    // Start from the Personnel section's container div
+    let currentElement = personnelHeader.closest('.mw-heading').nextElementSibling;
+    const allLists = [];
+    let listCount = 0;
 
-    while (currentElement && currentElement.tagName !== 'H2') {
-        if (currentElement.tagName === 'UL' || currentElement.querySelector('ul')) {
-            const targetUL = currentElement.tagName === 'UL'
-                ? currentElement
-                : currentElement.querySelector('ul');
+    console.log("Starting element:", currentElement?.tagName, currentElement?.classList);
 
-            if (targetUL) {
-                const actorLinks = getActorLinks(targetUL);
-                console.log(`Processing UL with ${actorLinks.length} actor links...`);
-                await processActorLinks(actorLinks);
+    // First pass: collect all lists
+    try {
+        while (currentElement) {
+            // Stop if we hit any mw-heading2 class after Personnel section
+            if (currentElement.classList?.contains('mw-heading') && 
+                currentElement.classList?.contains('mw-heading2')) {
+                console.log("Reached next major section - stopping analysis");
+                break;
             }
+
+            // Collect top-level lists
+            if (currentElement.tagName === 'UL') {
+                listCount++;
+                allLists.push(currentElement);
+                console.log(`Found top-level list ${listCount}`);
+            }
+
+            // Collect nested lists
+            const nestedLists = Array.from(currentElement.getElementsByTagName('ul'));
+            if (nestedLists.length > 0) {
+                listCount += nestedLists.length;
+                allLists.push(...nestedLists);
+                console.log(`Found ${nestedLists.length} nested lists in current element`);
+            }
+
+            // Move to the next sibling
+            currentElement = currentElement.nextElementSibling;
         }
-        currentElement = currentElement.nextElementSibling;
+
+        console.log(`\n>>> Total lists found in Personnel section: ${listCount} <<<\n`);
+
+        // Process all collected lists
+        if (allLists.length > 0) {
+            console.log(`Beginning to process ${allLists.length} lists...`);
+            const actorLinks = [];
+            for (const list of allLists) {
+                const links = getActorLinks(list);
+                actorLinks.push(...links);
+            }
+
+            console.log(`Found ${actorLinks.length} actor links to process`);
+            await processActorLinks(actorLinks);
+        } else {
+            console.log("No lists found to process");
+        }
+    } catch (error) {
+        console.error("Error processing Personnel section:", error);
     }
 }
 
@@ -140,8 +172,13 @@ async function processCastSection() {
     await processAdditionalPersonnel();
 }
 
-// Start the process
-console.log("Initializing Cast Checker...");
-processCastSection().then(() => {
+// Ensure this function is called in your main initialization
+async function initializeCastChecker() {
+    console.log("Wikipedia Cast Checker Loaded");
+    console.log("Initializing Cast Checker...");
+    await processAdditionalPersonnel();
     console.log("Cast Checker script execution complete.");
-});
+}
+
+// Start the process
+initializeCastChecker();
