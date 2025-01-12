@@ -97,61 +97,97 @@ async function processActorLinks(actorLinks) {
 async function processAdditionalPersonnel() {
     console.log("\n=== Starting Section Analysis ===");
     
-    // Updated selector to find the Personnel header within the mw-heading div
-    const personnelHeader = document.querySelector('.mw-heading h2#Personnel');
-    console.log("Personnel header found:", !!personnelHeader);
+    // Look for either Personnel or Cast sections
+    const sectionHeader = document.querySelector('.mw-heading h2#Personnel, .mw-heading h2#Cast');
+    const sectionType = sectionHeader?.id || 'unknown';
+    console.log(`${sectionType} section found:`, !!sectionHeader);
     
-    if (!personnelHeader) {
-        console.log("No Personnel section found, skipping...");
+    if (!sectionHeader) {
+        console.log("No Personnel or Cast section found, skipping...");
         return;
     }
 
-    // Start from the Personnel section's container div
-    let currentElement = personnelHeader.closest('.mw-heading').nextElementSibling;
-    const allLists = [];
+    // Start from the section's container div
+    let currentElement = sectionHeader.closest('.mw-heading').nextElementSibling;
+    const processedLinks = new Set(); // Track processed links by URL
+    const allLists = new Set();
+    let totalLinks = 0;
     let listCount = 0;
 
-    console.log("Starting element:", currentElement?.tagName, currentElement?.classList);
-
-    // First pass: collect all lists
     try {
-        while (currentElement) {
-            // Stop if we hit any mw-heading2 class after Personnel section
-            if (currentElement.classList?.contains('mw-heading') && 
-                currentElement.classList?.contains('mw-heading2')) {
-                console.log("Reached next major section - stopping analysis");
+        // Find the next major section to determine where to stop
+        let nextMajorSection = currentElement;
+        while (nextMajorSection) {
+            if (nextMajorSection.classList?.contains('mw-heading') && 
+                nextMajorSection.classList?.contains('mw-heading2') &&
+                nextMajorSection !== sectionHeader.closest('.mw-heading')) {
                 break;
             }
+            nextMajorSection = nextMajorSection.nextElementSibling;
+        }
 
-            // Collect top-level lists
-            if (currentElement.tagName === 'UL') {
+        // Function to recursively process elements and find lists
+        function findLists(element) {
+            if (!element) return;
+            
+            // Process this element if it's a list
+            if (element.tagName === 'UL' || element.tagName === 'OL') {
                 listCount++;
-                allLists.push(currentElement);
-                console.log(`Found list ${listCount}`);
+                allLists.add(element);
+                // Only count links we haven't processed yet
+                const links = element.querySelectorAll('a[href^="/wiki/"]');
+                let newLinks = 0;
+                links.forEach(link => {
+                    const url = link.getAttribute('href');
+                    if (!processedLinks.has(url)) {
+                        processedLinks.add(url);
+                        newLinks++;
+                    }
+                });
+                totalLinks += newLinks;
+                console.log(`Found ${element.tagName} list ${listCount} with ${newLinks} new wiki links`);
             }
 
-            // Move to the next sibling
+            // Process child elements
+            Array.from(element.children).forEach(child => {
+                // Only process until we hit the next major section
+                if (child !== nextMajorSection) {
+                    findLists(child);
+                }
+            });
+        }
+
+        // Process everything between section header and next major section
+        while (currentElement && currentElement !== nextMajorSection) {
+            findLists(currentElement);
             currentElement = currentElement.nextElementSibling;
         }
 
-        console.log(`\n>>> Total lists found in Personnel section: ${listCount} <<<\n`);
+        console.log(`\n>>> Found ${totalLinks} unique wiki links across ${listCount} lists (including nested) <<<\n`);
 
         // Process all collected lists
-        if (allLists.length > 0) {
-            console.log(`Beginning to process ${allLists.length} lists...`);
+        if (allLists.size > 0) {
             const actorLinks = [];
+            const processedActorUrls = new Set();
+
             for (const list of allLists) {
                 const links = getActorLinks(list);
-                actorLinks.push(...links);
+                // Only add links we haven't processed yet
+                links.forEach(link => {
+                    if (!processedActorUrls.has(link.url)) {
+                        processedActorUrls.add(link.url);
+                        actorLinks.push(link);
+                    }
+                });
             }
 
-            console.log(`Found ${actorLinks.length} actor links to process`);
+            console.log(`Processing ${actorLinks.length} unique ${sectionType} links for life status...`);
             await processActorLinks(actorLinks);
         } else {
             console.log("No lists found to process");
         }
     } catch (error) {
-        console.error("Error processing Personnel section:", error);
+        console.error(`Error processing ${sectionType} section:`, error);
     }
 }
 
