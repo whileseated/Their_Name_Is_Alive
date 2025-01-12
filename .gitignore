@@ -16,6 +16,7 @@ old/
 dist/
 build/
 icons/
+ignore/
 *.zip
 
 # IDE and Editor files
