@@ -105,7 +105,8 @@ Music:
 ---
 
 ## **To Do**  
-- Need to push for a solution where there are multiple personnel sections on a page, a la [Aja](https://en.wikipedia.org/wiki/Aja_(album)).
+- [ ] Need to create a fix for bug expressed for [Apple personnel section](https://en.wikipedia.org/wiki/Apple_Inc.#Personnel).
+- [x] Need to push for a solution where there are multiple personnel sections on a page, a la [Aja](https://en.wikipedia.org/wiki/Aja_(album)).
 ---
 
 ## **License**  
