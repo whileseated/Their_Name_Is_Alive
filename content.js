@@ -35,60 +35,98 @@ function findCastSection() {
 
 // Step 2: Extract actor links
 function getActorLinks(listElement) {
-    const links = new Set();
+    const links = [];
     
-    function processListItem(li) {
-        // Process direct anchors in this li
-        const anchors = Array.from(li.querySelectorAll(":scope > a[href^='/wiki/']"));
-        anchors.forEach(anchor => {
-            if (!anchor.previousSibling || 
-                (!anchor.previousSibling.textContent.includes('✅') &&
-                 !anchor.previousSibling.textContent.includes('❌'))) {
-                const url = "https://en.wikipedia.org" + anchor.getAttribute("href");
-                if (!Array.from(links).some(link => link.url === url)) {
-                    links.add({
-                        name: anchor.textContent.trim(),
-                        url: url,
-                        element: anchor
-                    });
-                }
-            }
+    // Get ALL wiki links in the list, including duplicates
+    const allAnchors = listElement.querySelectorAll("a[href^='/wiki/']");
+    
+    allAnchors.forEach(anchor => {
+        // Only process links that are within list items
+        if (!anchor.closest('li')) return;
+        
+        const url = "https://en.wikipedia.org" + anchor.getAttribute("href");
+        const name = anchor.textContent.trim();
+        
+        // Always add the link, even if we've seen this URL before
+        links.push({
+            name: name,
+            url: url,
+            element: anchor
         });
+        
+        // If this URL is already in the cache, immediately mark it
+        if (statusCache.has(url)) {
+            const status = statusCache.get(url);
+            if (!anchor.previousSibling?.textContent.includes('✅') &&
+                !anchor.previousSibling?.textContent.includes('❌')) {
+                anchor.insertAdjacentHTML("beforebegin", 
+                    status === "alive" ? "✅ " : "❌ ");
+                console.log(`Reapplied cached status for ${name}: ${status}`);
+            }
+        }
+    });
 
-        // Process nested lists within this li - but only direct children
-        const nestedLists = li.querySelectorAll(":scope > ul > li");
-        nestedLists.forEach(nestedLi => processListItem(nestedLi));
-    }
-    
-    // Start processing from top-level list items only
-    const listItems = listElement.querySelectorAll(":scope > li");
-    listItems.forEach(li => processListItem(li));
-
-    return Array.from(links);
+    console.log(`Found ${links.length} total links (including duplicates)`);
+    return links;
 }
 
-// Step 3: Process actor links asynchronously
-async function processActorLinks(actorLinks) {
-    for (const actor of actorLinks) {
-        try {
-            const response = await new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({ actorUrl: actor.url }, (res) => {
-                    if (chrome.runtime.lastError) reject(chrome.runtime.lastError.message);
-                    else resolve(res);
-                });
-            });
+// Create a cache to store life status results
+const statusCache = new Map();
 
-            if (response?.status === "alive") {
-                actor.element.insertAdjacentHTML("beforebegin", "✅ ");
-                console.log(`Marked ${actor.name} as alive.`);
-            } else if (response?.status === "deceased") {
-                actor.element.insertAdjacentHTML("beforebegin", "❌ ");
-                console.log(`Marked ${actor.name} as deceased.`);
+// Step 3: Process actor links asynchronously
+async function processActorLinksWithCache(actorLinks) {
+    // Group by URL but keep ALL elements
+    const urlToElements = new Map();
+    actorLinks.forEach(actor => {
+        if (!urlToElements.has(actor.url)) {
+            urlToElements.set(actor.url, []);
+        }
+        urlToElements.get(actor.url).push(actor.element);
+    });
+
+    console.log(`Processing ${urlToElements.size} unique URLs...`);
+
+    // Process each unique URL once
+    for (const [url, elements] of urlToElements) {
+        try {
+            // Skip if all elements are already marked
+            if (elements.every(el => 
+                el.previousSibling?.textContent.includes('✅') ||
+                el.previousSibling?.textContent.includes('❌'))) {
+                continue;
+            }
+
+            let status;
+            if (statusCache.has(url)) {
+                status = statusCache.get(url);
+                console.log(`Using cached status for ${elements[0].textContent}: ${status}`);
             } else {
-                console.warn(`No status found for ${actor.name}.`);
+                const response = await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({ actorUrl: url }, (res) => {
+                        if (chrome.runtime.lastError) reject(chrome.runtime.lastError.message);
+                        else resolve(res);
+                    });
+                });
+
+                if (response?.status === "alive" || response?.status === "deceased") {
+                    status = response.status;
+                    statusCache.set(url, status);
+                    console.log(`Fetched and cached ${elements[0].textContent} as ${status}`);
+                }
+            }
+
+            // Mark ALL elements for this URL
+            if (status) {
+                elements.forEach(element => {
+                    if (!element.previousSibling?.textContent.includes('✅') &&
+                        !element.previousSibling?.textContent.includes('❌')) {
+                        element.insertAdjacentHTML("beforebegin", 
+                            status === "alive" ? "✅ " : "❌ ");
+                    }
+                });
             }
         } catch (error) {
-            console.error(`Error processing ${actor.name}:`, error);
+            console.error(`Error processing ${elements[0].textContent}:`, error);
         }
     }
 }
@@ -97,7 +135,6 @@ async function processActorLinks(actorLinks) {
 async function processAdditionalPersonnel() {
     console.log("\n=== Starting Section Analysis ===");
     
-    // Look for either Personnel or Cast sections
     const sectionHeader = document.querySelector('.mw-heading h2#Personnel, .mw-heading h2#Cast');
     const sectionType = sectionHeader?.id || 'unknown';
     console.log(`${sectionType} section found:`, !!sectionHeader);
@@ -107,87 +144,87 @@ async function processAdditionalPersonnel() {
         return;
     }
 
-    // Start from the section's container div
-    let currentElement = sectionHeader.closest('.mw-heading').nextElementSibling;
-    const processedLinks = new Set(); // Track processed links by URL
-    const allLists = new Set();
-    let totalLinks = 0;
-    let listCount = 0;
-
-    try {
-        // Find the next major section to determine where to stop
-        let nextMajorSection = currentElement;
-        while (nextMajorSection) {
-            if (nextMajorSection.classList?.contains('mw-heading') && 
-                nextMajorSection.classList?.contains('mw-heading2') &&
-                nextMajorSection !== sectionHeader.closest('.mw-heading')) {
-                break;
-            }
-            nextMajorSection = nextMajorSection.nextElementSibling;
+    // Get the entire section content
+    let currentElement = sectionHeader.closest('.mw-heading');
+    let sectionContent = [];
+    
+    // Collect all elements until next major section
+    while (currentElement = currentElement.nextElementSibling) {
+        if (currentElement.classList?.contains('mw-heading') && 
+            currentElement.classList?.contains('mw-heading2')) {
+            break;
         }
+        sectionContent.push(currentElement);
+    }
 
-        // Function to recursively process elements and find lists
-        function findLists(element) {
-            if (!element) return;
+    // Find all wiki links in the entire section
+    const allLinks = [];
+    sectionContent.forEach(element => {
+        const anchors = element.querySelectorAll("a[href^='/wiki/']");
+        anchors.forEach(anchor => {
+            // Only include links that are within list items
+            if (anchor.closest('li')) {
+                const url = "https://en.wikipedia.org" + anchor.getAttribute("href");
+                allLinks.push({
+                    name: anchor.textContent.trim(),
+                    url: url,
+                    element: anchor
+                });
+            }
+        });
+    });
+
+    console.log(`Found ${allLinks.length} total links in ${sectionType} section`);
+
+    // Group all links by URL
+    const urlToElements = new Map();
+    allLinks.forEach(link => {
+        if (!urlToElements.has(link.url)) {
+            urlToElements.set(link.url, []);
+        }
+        urlToElements.get(link.url).push(link.element);
+    });
+
+    console.log(`Processing ${urlToElements.size} unique people...`);
+
+    // Process each unique person
+    for (const [url, elements] of urlToElements) {
+        try {
+            let status;
             
-            // Process this element if it's a list
-            if (element.tagName === 'UL' || element.tagName === 'OL') {
-                listCount++;
-                allLists.add(element);
-                // Only count links we haven't processed yet
-                const links = element.querySelectorAll('a[href^="/wiki/"]');
-                let newLinks = 0;
-                links.forEach(link => {
-                    const url = link.getAttribute('href');
-                    if (!processedLinks.has(url)) {
-                        processedLinks.add(url);
-                        newLinks++;
-                    }
+            // Check cache first
+            if (statusCache.has(url)) {
+                status = statusCache.get(url);
+                console.log(`Using cached status for ${elements[0].textContent}: ${status}`);
+            } else {
+                // Fetch new status
+                const response = await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({ actorUrl: url }, (res) => {
+                        if (chrome.runtime.lastError) reject(chrome.runtime.lastError.message);
+                        else resolve(res);
+                    });
                 });
-                totalLinks += newLinks;
-                console.log(`Found ${element.tagName} list ${listCount} with ${newLinks} new wiki links`);
-            }
 
-            // Process child elements
-            Array.from(element.children).forEach(child => {
-                // Only process until we hit the next major section
-                if (child !== nextMajorSection) {
-                    findLists(child);
+                if (response?.status === "alive" || response?.status === "deceased") {
+                    status = response.status;
+                    statusCache.set(url, status);
+                    console.log(`Fetched and cached ${elements[0].textContent} as ${status}`);
                 }
-            });
-        }
+            }
 
-        // Process everything between section header and next major section
-        while (currentElement && currentElement !== nextMajorSection) {
-            findLists(currentElement);
-            currentElement = currentElement.nextElementSibling;
-        }
-
-        console.log(`\n>>> Found ${totalLinks} unique wiki links across ${listCount} lists (including nested) <<<\n`);
-
-        // Process all collected lists
-        if (allLists.size > 0) {
-            const actorLinks = [];
-            const processedActorUrls = new Set();
-
-            for (const list of allLists) {
-                const links = getActorLinks(list);
-                // Only add links we haven't processed yet
-                links.forEach(link => {
-                    if (!processedActorUrls.has(link.url)) {
-                        processedActorUrls.add(link.url);
-                        actorLinks.push(link);
+            // Mark ALL instances of this person
+            if (status) {
+                elements.forEach(element => {
+                    if (!element.previousSibling?.textContent.includes('✅') &&
+                        !element.previousSibling?.textContent.includes('❌')) {
+                        element.insertAdjacentHTML("beforebegin", 
+                            status === "alive" ? "✅ " : "❌ ");
                     }
                 });
             }
-
-            console.log(`Processing ${actorLinks.length} unique ${sectionType} links for life status...`);
-            await processActorLinks(actorLinks);
-        } else {
-            console.log("No lists found to process");
+        } catch (error) {
+            console.error(`Error processing ${elements[0].textContent}:`, error);
         }
-    } catch (error) {
-        console.error(`Error processing ${sectionType} section:`, error);
     }
 }
 
@@ -201,7 +238,7 @@ async function processCastSection() {
             console.warn("No valid actor links found. Exiting.");
             return;
         }
-        await processActorLinks(actorLinks);
+        await processActorLinksWithCache(actorLinks);
     } else {
         console.warn("No Cast section found. Nothing to process.");
     }
