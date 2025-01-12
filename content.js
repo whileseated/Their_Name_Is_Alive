@@ -37,9 +37,9 @@ function findCastSection() {
 function getActorLinks(listElement) {
     const links = new Set();
     
-    const listItems = listElement.querySelectorAll("li");
-    listItems.forEach(li => {
-        const anchors = Array.from(li.querySelectorAll("a[href^='/wiki/']"));
+    function processListItem(li) {
+        // Process direct anchors in this li
+        const anchors = Array.from(li.querySelectorAll(":scope > a[href^='/wiki/']"));
         anchors.forEach(anchor => {
             if (!anchor.previousSibling || 
                 (!anchor.previousSibling.textContent.includes('✅') &&
@@ -54,7 +54,15 @@ function getActorLinks(listElement) {
                 }
             }
         });
-    });
+
+        // Process nested lists within this li - but only direct children
+        const nestedLists = li.querySelectorAll(":scope > ul > li");
+        nestedLists.forEach(nestedLi => processListItem(nestedLi));
+    }
+    
+    // Start processing from top-level list items only
+    const listItems = listElement.querySelectorAll(":scope > li");
+    listItems.forEach(li => processListItem(li));
 
     return Array.from(links);
 }
@@ -119,15 +127,7 @@ async function processAdditionalPersonnel() {
             if (currentElement.tagName === 'UL') {
                 listCount++;
                 allLists.push(currentElement);
-                console.log(`Found top-level list ${listCount}`);
-            }
-
-            // Collect nested lists
-            const nestedLists = Array.from(currentElement.getElementsByTagName('ul'));
-            if (nestedLists.length > 0) {
-                listCount += nestedLists.length;
-                allLists.push(...nestedLists);
-                console.log(`Found ${nestedLists.length} nested lists in current element`);
+                console.log(`Found list ${listCount}`);
             }
 
             // Move to the next sibling
